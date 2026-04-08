@@ -403,6 +403,7 @@ async function doSearch(q){
     await dly(200);
   }
   document.getElementById('sHint').textContent=emps.length?emps.length+' resultado'+(emps.length>1?'s':''):'Sin resultados para "'+q+'"';
+  if(emps.length>0)console.log('[SP Debug] Campos:',Object.keys(emps[0]),'Valores:',JSON.stringify(emps[0]).substring(0,400));
   renderEmps(emps);
 }
 function renderEmps(list){
@@ -410,14 +411,14 @@ function renderEmps(list){
   const box=document.getElementById('searchBox');
   if(!list.length){box.innerHTML='<div class="st-blk"><div class="st-ico">🔍</div><div class="st-t">Sin resultados</div><div class="st-d">No se encontró ningún colaborador. Intenta con otro término.</div></div>';return;}
   box.innerHTML=list.map((e,i)=>{
-    const nom=e.Titulo||e.Title||'';const dni=e.DNI||'—';const car=e.Cargo||'—';const are=e.Area||'—';const est=e.Estado||'Activo';
+    const nom=e.Titulo||e.Title||'';const dni=spDNI(e);const car=spVal(e.Cargo);const are=spVal(e.Area);const est=spVal(e.Estado,'Activo');
     return`<div class="ec" onclick="selEmp(${i})"><div class="eav">${ini(nom)}</div><div style="flex:1;min-width:0"><div class="en">${nom}</div><div class="em">DNI: ${dni}</div><div class="etags"><span class="tag tc">${are}</span><span class="tag tg">${car}</span><span class="tag ta">${est}</span></div></div><svg class="earr" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>`;
   }).join('');
 }
 async function selEmp(idx){
   S.selEmp=S.empList[idx];
   const e=S.selEmp;
-  const nom=e.Titulo||e.Title||'';const dni=e.DNI||'—';const car=e.Cargo||'—';const are=e.Area||'—';const emp=e.Empresa||'Transportes Sagitario';
+  const nom=e.Titulo||e.Title||'';const dni=spDNI(e);const car=spVal(e.Cargo);const are=spVal(e.Area);const emp=spVal(e.Empresa,'Transportes Sagitario');
   document.getElementById('selHero').innerHTML=`<div class="sel-av">${ini(nom)}</div><div style="flex:1;min-width:0"><div class="sel-n">${nom}</div><div class="sel-s">DNI: ${dni}</div><div class="sel-tags"><span class="sel-tag">📍 ${are}</span><span class="sel-tag">💼 ${car}</span><span class="sel-tag">🏢 ${emp}</span></div></div>`;
   document.getElementById('fechaInput').value=new Date().toISOString().slice(0,10);
   goTo('form');loadHist(dni);
@@ -481,7 +482,7 @@ async function saveRecord(){
   const now=new Date(fecha+'T12:00:00');
   const btn=document.getElementById('btnSave');
   btn.disabled=true;btn.innerHTML='<div class="btn-sp"></div> Guardando en SharePoint...';
-  const nom=e.Titulo||e.Title||'';const dni=e.DNI||'';
+  const nom=e.Titulo||e.Title||'';const dni=spDNI(e).replace('--','');
   let savedId=null;
   if(!CFG.DEMO_MODE){
     try{
@@ -496,7 +497,7 @@ async function saveRecord(){
   btn.disabled=false;btn.innerHTML=`<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar Registro IMC`;
 }
 function renderResult(r){
-  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';const car=r.emp.Cargo||'—';
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=spDNI(r.emp);const car=spVal(r.emp.Cargo);
   const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
   const ft=r.fecha.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('rHero').innerHTML=`<div class="r-ok">✅ REGISTRO GUARDADO</div><div class="r-nm">${nom}</div><div class="r-sb">DNI: ${dni} · ${car}</div><div class="r-dt">📅 ${fd} &nbsp;·&nbsp; ⏰ ${ft}</div>`;
@@ -554,7 +555,7 @@ function downloadPDF(){
 }
 function genPDF(doc,r){
   const W=210,M=18;let y=0;
-  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';const car=r.emp.Cargo||'—';const are=r.emp.Area||'—';const emp=r.emp.Empresa||'Transportes Sagitario S.R.L.';
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=spDNI(r.emp);const car=spVal(r.emp.Cargo);const are=spVal(r.emp.Area);const emp=spVal(r.emp.Empresa,'Transportes Sagitario S.R.L.');
   const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
   const ft=r.fecha.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
   doc.setFillColor(38,66,51);doc.rect(0,0,W,44,'F');doc.setFillColor(61,107,82);doc.rect(0,38,W,6,'F');
@@ -613,7 +614,7 @@ function genPDF(doc,r){
 }
 function shareWsp(){
   const r=S.result;if(!r)return;
-  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=spDNI(r.emp);
   const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
   const emos={'NORMAL':'✅','DELGADEZ':'💙','SOBREPESO':'⚠️','OBESIDAD TIPO 01':'🔴','OBESIDAD TIPO 02':'🔴','OBESIDAD MÓRBIDA':'🚨'};
   let msg='🏥 *REPORTE IMC — TRANSPORTES SAGITARIO*\n━━━━━━━━━━━━━━━━━━━━━━\n\n';
@@ -645,6 +646,8 @@ function obsFor(d){
   return M[d]||[];
 }
 function ini(n){const w=(n||'').trim().split(/\s+/).filter(Boolean);return w.length>=2?(w[0][0]+w[1][0]).toUpperCase():(w[0]||'?').substring(0,2).toUpperCase();}
+function spVal(v,def){def=def!==undefined?def:'--';if(v==null||v===undefined)return def;if(typeof v==='object'&&v!==null)return v.Value||v.value||def;return String(v)||def;}
+function spDNI(e){return[e.DNI,e['DNI'],e.Dni,e.dni,e.DNI_x0020_].map(v=>spVal(v,'')).find(v=>v&&v!=='--')||'--';}
 function hRGB(hex){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:0,g:0,b:0};}
 function fmtD(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return String(d).slice(0,10);}}
 function dly(ms){return new Promise(r=>setTimeout(r,ms));}
