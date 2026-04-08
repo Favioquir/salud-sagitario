@@ -491,7 +491,7 @@ async function saveRecord(){
   let savedId=null;
   if(!CFG.DEMO_MODE){
     try{
-      const r=await fetch(CFG.FLOW_GUARDAR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Titulo:nom,DNI:dni,PESO:peso,TALLA:talla,Fecha:fecha,CreadoPor:CFG.CREADO_POR})});
+      const r=await fetch(CFG.FLOW_GUARDAR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Titulo:nom,DNI:dni,PESO:peso,TALLA:talla,Fecha:fecha+'T00:00:00Z',CreadoPor:CFG.CREADO_POR})});
       if(!r.ok)throw new Error('HTTP '+r.status);
       const d=await r.json();savedId=d.id||d.Id||d.ID||null;toast('✅ Registro guardado correctamente','ok');
     }catch(err){console.error(err);toast('⚠️ Error al guardar — verifica el flujo','warn');}
