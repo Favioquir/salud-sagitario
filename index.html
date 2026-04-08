@@ -470,17 +470,18 @@ function liveIMC(){
       const lhT=parseFloat(lh.TALLA||lh.talla||0);
       const lhRaw=parseFloat(lh.IMC2||lh['_x0049_MC2']||lh.imc||0);
       const lastIMC=(lhRaw>0)?lhRaw:((lhP>0&&lhT>0)?cIMC(lhP,lhT):0);
-      if(lastIMC<=0){document.getElementById('prevDelta').style.display='none';}
-      if(lastIMC<=0){document.getElementById('prevDelta').style.display='none';}
-      else{
-      const diff=imc-lastIMC;const ad=Math.abs(diff).toFixed(2);
-      const ld=fmtD(lh.Fecha||lh.fecha||lh.FechaCreado||lh.Created);
-      let ico,txt,col;
-      if(diff<-0.1){ico='📉';col='#2E7D32';txt=`Bajó <span class="dn" style="color:${col}">▼ ${ad}</span> desde ${ld}`;}
-      else if(diff>0.1){ico='📈';col='#C62828';txt=`Subió <span class="dn" style="color:${col}">▲ ${ad}</span> desde ${ld}`;}
-      else{ico='📊';col='#777';txt=`<span class="dn" style="color:${col}">Sin cambio</span> desde ${ld}`;}
-      document.getElementById('dIco').textContent=ico;document.getElementById('dTxt').innerHTML=txt;dEl.style.display='flex';
-      }
+      if(lastIMC>0){
+        const diff=imc-lastIMC;
+        const ad=Math.abs(diff).toFixed(2);
+        const ld=fmtD(lh.Fecha||lh.fecha||lh.FechaCreado||lh.Created);
+        let ico,txt,col;
+        if(diff<-0.1){ico='📉';col='#2E7D32';txt=`Bajó <span class="dn" style="color:${col}">▼ ${ad}</span> desde ${ld}`;}
+        else if(diff>0.1){ico='📈';col='#C62828';txt=`Subió <span class="dn" style="color:${col}">▲ ${ad}</span> desde ${ld}`;}
+        else{ico='📊';col='#777';txt=`<span class="dn" style="color:${col}">Sin cambio</span> desde ${ld}`;}
+        document.getElementById('dIco').textContent=ico;
+        document.getElementById('dTxt').innerHTML=txt;
+        dEl.style.display='flex';
+      }else{dEl.style.display='none';}
     }else{dEl.style.display='none';}
     btn.disabled=false;
   }else{prev.classList.remove('show');btn.disabled=true;}
