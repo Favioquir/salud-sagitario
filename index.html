@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SaludTS · Control IMC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --sage:#3D6B52;--sage-d:#264233;--sage-m:#4E8468;--sage-l:#EEF5F1;--sage-p:#F7FAF8;
+  --ivory:#FBF8F3;--warm:#C9906A;--text:#1C2B23;--text-m:#4A5E53;--text-s:#8FA89A;
+  --brd:#D9E6DF;--wh:#FFFFFF;
+  --sh0:0 1px 4px rgba(61,107,82,.08);--sh1:0 2px 12px rgba(61,107,82,.10);
+  --sh2:0 6px 28px rgba(61,107,82,.14);--sh3:0 16px 56px rgba(61,107,82,.18);
+  --r:18px;--rs:11px;--pill:999px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--ivory);color:var(--text);min-height:100vh}
+.hdr{background:linear-gradient(135deg,var(--sage-d),var(--sage-m));padding:0 20px;position:sticky;top:0;z-index:200;box-shadow:0 4px 24px rgba(38,66,51,.35)}
+.hdr-in{max-width:640px;margin:0 auto;height:64px;display:flex;align-items:center;gap:13px}
+.hdr-logo{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;border:1px solid rgba(255,255,255,.2)}
+.hdr-t{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;letter-spacing:-.3px}
+.hdr-s{font-size:11px;color:rgba(255,255,255,.62);margin-top:1px;letter-spacing:.3px}
+.hdr-chip{margin-left:auto;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);border-radius:var(--pill);padding:5px 13px;font-size:11px;color:rgba(255,255,255,.88);font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.steps-bar{background:rgba(255,255,255,.07);border-top:1px solid rgba(255,255,255,.1)}
+.steps-in{max-width:640px;margin:0 auto;display:flex;padding:0 20px}
+.step{flex:1;display:flex;align-items:center;gap:7px;padding:8px 0;opacity:.35;transition:opacity .3s}
+.step.active{opacity:1}.step.done{opacity:.6}
+.step-dot{width:21px;height:21px;border-radius:50%;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.78);flex-shrink:0;transition:all .3s}
+.step.active .step-dot{background:#fff;color:var(--sage);border-color:#fff}
+.step-lbl{font-size:10px;color:rgba(255,255,255,.78);font-weight:600;letter-spacing:.3px}
+.step-sep{width:20px;height:1px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0}
+.wrap{max-width:640px;margin:0 auto;padding:22px 16px 48px}
+.screen{display:none}
+.screen.active{display:block;animation:up .33s cubic-bezier(.22,1,.36,1) both}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--wh);border-radius:var(--r);padding:20px 18px;box-shadow:var(--sh1);margin-bottom:13px;border:1px solid var(--brd)}
+.ct{font-size:10.5px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.ct::after{content:'';flex:1;height:1px;background:var(--brd)}
+.welcome{background:linear-gradient(135deg,var(--sage-d),var(--sage-m));border-radius:var(--r);padding:22px 20px;margin-bottom:13px;color:#fff;position:relative;overflow:hidden}
+.welcome::before{content:'🩺';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:62px;opacity:.1;pointer-events:none}
+.wg{font-size:12.5px;opacity:.7;margin-bottom:5px}
+.wt{font-family:'DM Serif Display',serif;font-size:21px;letter-spacing:-.3px;margin-bottom:7px}
+.wd{font-size:12.5px;opacity:.65;line-height:1.5;max-width:280px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sage-p);border-radius:11px;padding:4px;margin-bottom:15px;border:1px solid var(--brd)}
+.tab{padding:9px 12px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .22s;background:transparent;color:var(--text-s);font-family:'DM Sans',sans-serif}
+.tab.on{background:var(--wh);color:var(--sage-d);box-shadow:var(--sh0)}
+.s-wrap{position:relative}
+.s-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-s);pointer-events:none}
+.s-input{width:100%;padding:13px 42px 13px 42px;border:1.5px solid var(--brd);border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--sage-p);color:var(--text);outline:none;transition:all .2s}
+.s-input:focus{border-color:var(--sage-m);background:var(--wh);box-shadow:0 0 0 4px rgba(78,132,104,.12)}
+.s-input::placeholder{color:var(--text-s)}
+.s-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-s);display:none;padding:4px;font-size:15px;line-height:1;font-family:'DM Sans',sans-serif}
+.s-clear.show{display:flex}
+.s-hint{font-size:11.5px;color:var(--text-s);margin-top:8px;padding:0 2px}
+.rc{font-size:12px;color:var(--text-s);margin-bottom:9px;padding:0 2px;font-weight:500}
+.ec{display:flex;align-items:center;gap:13px;padding:13px 15px;background:var(--wh);border-radius:12px;border:1.5px solid var(--brd);cursor:pointer;transition:all .2s;margin-bottom:8px;box-shadow:var(--sh0)}
+.ec:hover{border-color:var(--sage-m);background:var(--sage-l);transform:translateX(3px);box-shadow:var(--sh1)}
+.eav{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--sage-d),var(--sage-m));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
+.en{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3}
+.em{font-size:11.5px;color:var(--text-s)}
+.etags{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.tag{padding:2px 9px;border-radius:var(--pill);font-size:10px;font-weight:700;letter-spacing:.3px}
+.tc{background:var(--sage-l);color:var(--sage-d)}.tg{background:#FFF8E1;color:#B76E00}.ta{background:#E8F5E9;color:#2E7D32}
+.earr{margin-left:auto;color:var(--text-s);flex-shrink:0;transition:all .2s}
+.ec:hover .earr{transform:translateX(3px);color:var(--sage)}
+.st-blk{text-align:center;padding:36px 16px}
+.st-ico{font-size:48px;margin-bottom:12px}
+.st-t{font-family:'DM Serif Display',serif;font-size:16px;color:var(--text);margin-bottom:7px}
+.st-d{font-size:13px;color:var(--text-s);line-height:1.5}
+.spin-r{width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--sage);border-radius:50%;animation:rot .7s linear infinite;margin:0 auto 12px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--sage);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:15px;padding:7px 0;border:none;background:none;font-family:'DM Sans',sans-serif;transition:gap .2s}
+.back:hover{gap:10px}
+.sel-hero{background:linear-gradient(135deg,var(--sage-d),var(--sage-m));border-radius:var(--r);padding:20px 18px;margin-bottom:13px;display:flex;align-items:center;gap:15px;box-shadow:var(--sh2);position:relative;overflow:hidden}
+.sel-hero::after{content:'';position:absolute;right:-22px;top:-22px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.06)}
+.sel-av{width:55px;height:55px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#fff;flex-shrink:0}
+.sel-n{font-size:14.5px;font-weight:700;color:#fff;margin-bottom:3px;line-height:1.3}
+.sel-s{font-size:11.5px;color:rgba(255,255,255,.68);margin-bottom:7px}
+.sel-tags{display:flex;gap:5px;flex-wrap:wrap}
+.sel-tag{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.88);letter-spacing:.3px}
+.hist-sec{background:var(--wh);border-radius:var(--r);padding:18px 16px;margin-bottom:13px;border:1px solid var(--brd);box-shadow:var(--sh0)}
+.hist-ld{display:flex;align-items:center;gap:10px;color:var(--text-s);font-size:13px}
+.hist-sp{width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--sage);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0}
+.hist-t{width:100%;border-collapse:collapse;font-size:12px}
+.hist-t th{text-align:left;color:var(--text-s);font-weight:600;padding:0 6px 8px;border-bottom:1px solid var(--brd);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px}
+.hist-t td{padding:7px 6px;border-bottom:1px solid var(--sage-p);color:var(--text-m);vertical-align:middle}
+.hist-t tr:last-child td{border-bottom:none}
+.hp{display:inline-block;padding:2px 8px;border-radius:var(--pill);font-size:10px;font-weight:700;color:#fff}
+.ht{font-size:11px;font-weight:700}
+.hist-none{font-size:12.5px;color:var(--text-s);font-style:italic;padding:4px 0}
+.fecha-row{background:var(--sage-p);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;border:1px solid var(--brd);flex-wrap:wrap}
+.fecha-lbl{font-size:11px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.fecha-input{border:1.5px solid var(--brd);border-radius:8px;padding:6px 10px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--wh);outline:none;transition:all .2s}
+.fecha-input:focus{border-color:var(--sage-m);box-shadow:0 0 0 3px rgba(78,132,104,.12)}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
+.m-box{background:var(--wh);border-radius:13px;padding:16px 13px;border:1.5px solid var(--brd);box-shadow:var(--sh0);text-align:center;transition:border-color .2s,box-shadow .2s}
+.m-box:focus-within{border-color:var(--sage-m);box-shadow:0 0 0 4px rgba(78,132,104,.12)}
+.m-lbl{font-size:10px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:5px}
+.m-inp{width:100%;text-align:center;font-size:29px;font-weight:700;font-family:'DM Serif Display',serif;color:var(--sage-d);border:1.5px solid var(--brd);border-radius:9px;padding:9px 6px;outline:none;background:var(--sage-p);transition:all .2s}
+.m-inp:focus{border-color:var(--sage-m);background:var(--wh)}
+.m-unit{font-size:11px;color:var(--text-s);margin-top:5px;font-weight:500}
+.imc-prev{background:var(--wh);border-radius:var(--r);padding:18px;margin-bottom:13px;border:1.5px solid var(--brd);box-shadow:var(--sh0);display:none}
+.imc-prev.show{display:block;animation:up .28s cubic-bezier(.22,1,.36,1)}
+.prev-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.prev-num{font-family:'DM Serif Display',serif;font-size:52px;line-height:1;transition:color .3s}
+.prev-unit{font-size:11px;color:var(--text-s);margin-top:3px;font-weight:500}
+.d-pill{padding:9px 17px;border-radius:var(--pill);font-size:11.5px;font-weight:800;color:#fff;letter-spacing:.4px;transition:background .3s;text-align:center;max-width:155px;line-height:1.35}
+.prev-delta{display:flex;align-items:center;gap:8px;background:var(--sage-p);border-radius:9px;padding:9px 12px;margin-bottom:13px;border:1px solid var(--brd)}
+.di{font-size:15px}.dt{font-size:12.5px;color:var(--text-m);font-weight:500}.dn{font-weight:700}
+.scale-w{position:relative}
+.scale-b{height:11px;border-radius:6px;background:linear-gradient(to right,#5AB4D4 0%,#5AB4D4 18.75%,#4CAF50 18.75%,#4CAF50 41.67%,#F5A623 41.67%,#F5A623 59.38%,#EF5350 59.38%,#EF5350 75%,#B71C1C 75%,#B71C1C 88.5%,#7B1FA2 88.5%,#7B1FA2 100%);margin-bottom:6px;overflow:visible;position:relative}
+.scale-n{position:absolute;top:-5px;width:3px;height:21px;background:var(--text);border-radius:2px;transform:translateX(-50%);transition:left .6s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 6px rgba(0,0,0,.28)}
+.scale-n::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--text)}
+.scale-ls{display:flex;justify-content:space-between;font-size:9px;color:var(--text-s);font-weight:600;letter-spacing:.3px}
+.legend{display:flex;flex-wrap:wrap;gap:5px 11px;margin-top:11px}
+.leg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-m);font-weight:500}
+.leg-d{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.btn-save{width:100%;padding:17px;background:linear-gradient(135deg,var(--sage-d),var(--sage-m));color:#fff;border:none;border-radius:14px;font-size:15.5px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;box-shadow:0 6px 22px rgba(61,107,82,.38);letter-spacing:.2px}
+.btn-save:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(61,107,82,.48)}
+.btn-save:active{transform:none}.btn-save:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+.btn-sp{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+.r-hero{background:linear-gradient(135deg,var(--sage-d),var(--sage-m));border-radius:var(--r);padding:22px 20px 18px;color:#fff;margin-bottom:13px;box-shadow:var(--sh2);position:relative;overflow:hidden}
+.r-hero::before{content:'✓';position:absolute;right:-8px;bottom:-24px;font-size:116px;font-weight:900;opacity:.05;line-height:1}
+.r-ok{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:var(--pill);padding:4px 11px;font-size:10.5px;font-weight:700;letter-spacing:.5px;margin-bottom:13px}
+.r-nm{font-family:'DM Serif Display',serif;font-size:19px;margin-bottom:3px}
+.r-sb{font-size:12px;opacity:.68;margin-bottom:10px}
+.r-dt{font-size:11px;opacity:.58;display:flex;align-items:center;gap:7px}
+.mx-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:13px}
+.mx-b{background:var(--wh);border-radius:12px;padding:13px 9px;text-align:center;border:1.5px solid var(--brd);box-shadow:var(--sh0)}
+.mx-v{font-family:'DM Serif Display',serif;font-size:21px;color:var(--sage-d);line-height:1.1}
+.mx-l{font-size:9.5px;color:var(--text-s);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.d-card{background:var(--wh);border-radius:var(--r);padding:20px 18px;margin-bottom:13px;border:1.5px solid var(--brd);box-shadow:var(--sh0)}
+.d-hdr{display:flex;align-items:center;gap:15px;margin-bottom:18px}
+.d-circ{width:76px;height:76px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 16px rgba(0,0,0,.14)}
+.d-cn{font-family:'DM Serif Display',serif;font-size:25px;color:#fff;line-height:1}
+.d-cu{font-size:10px;color:rgba(255,255,255,.8);font-weight:600;margin-top:1px}
+.d-lbl{font-family:'DM Serif Display',serif;font-size:21px;line-height:1.15;margin-bottom:4px}
+.d-desc{font-size:12px;color:var(--text-s);line-height:1.5}
+.evo-card{background:var(--wh);border-radius:var(--r);padding:18px 16px;margin-bottom:13px;border:1.5px solid var(--brd);box-shadow:var(--sh0)}
+.evo-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px;margin-top:12px}
+.evo-item{background:var(--sage-p);border-radius:9px;padding:9px 8px;text-align:center;border:1px solid var(--brd)}
+.evo-date{font-size:9.5px;color:var(--text-s);font-weight:600;margin-bottom:3px}
+.evo-imc{font-size:17px;font-weight:700;font-family:'DM Serif Display',serif}
+.evo-diag{font-size:9px;font-weight:700;letter-spacing:.3px}
+.evo-now{border:2px solid var(--sage-m);background:var(--sage-l)}
+.obs-card{border-radius:var(--r);padding:18px;margin-bottom:13px;border-left:4px solid var(--sage-m);background:var(--sage-p);border-top:1px solid var(--brd);border-right:1px solid var(--brd);border-bottom:1px solid var(--brd)}
+.obs-hdr{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;color:var(--sage-d);text-transform:uppercase;letter-spacing:1px;margin-bottom:13px}
+.obs-l{list-style:none}
+.obs-i{display:flex;align-items:flex-start;gap:9px;padding:6px 0;font-size:13.5px;color:var(--sage-d);line-height:1.55;border-bottom:1px solid rgba(61,107,82,.08)}
+.obs-i:last-child{border-bottom:none}
+.obs-ck{width:17px;height:17px;border-radius:50%;background:var(--sage-m);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:9.5px;color:#fff;font-weight:900}
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.btn-act{padding:14px 12px;border:none;border-radius:12px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.btn-pdf{background:#FEF3E8;color:#8B4513;border:1.5px solid rgba(201,144,106,.28)}
+.btn-wsp{background:#E8F5E9;color:#1B5E20;border:1.5px solid rgba(46,125,50,.2)}
+.btn-act:hover{transform:translateY(-2px);box-shadow:var(--sh1)}
+.btn-new{width:100%;padding:16px;background:var(--wh);color:var(--sage-d);border:2px solid var(--brd);border-radius:12px;font-size:14.5px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.btn-new:hover{border-color:var(--sage-m);background:var(--sage-p);color:var(--sage)}
+.pdf-st{display:flex;align-items:center;gap:8px;background:var(--sage-p);border-radius:9px;padding:9px 13px;margin-bottom:10px;font-size:12px;font-weight:500;color:var(--sage-d);border:1px solid var(--brd)}
+.pdf-st .psi{font-size:15px}
+.pdf-st.uploading .psi{animation:rot .7s linear infinite}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sage-d);color:#fff;padding:12px 22px;border-radius:13px;font-size:13px;font-weight:600;box-shadow:var(--sh3);z-index:9999;transition:transform .38s cubic-bezier(.34,1.56,.64,1);max-width:92vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#2E7D32}.toast.err{background:#B71C1C}.toast.warn{background:#E65100}
+@media(max-width:400px){.act-grid{grid-template-columns:1fr}.prev-num{font-size:42px}.d-lbl{font-size:18px}}
+@media(min-width:600px){.wrap{padding:26px 22px 52px}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="hdr-logo">🩺</div>
+    <div><div class="hdr-t">SaludTS</div><div class="hdr-s">Control IMC · Transportes Sagitario</div></div>
+    <div class="hdr-chip" id="hChip">—</div>
+  </div>
+  <div class="steps-bar">
+    <div class="steps-in">
+      <div class="step active" id="st1"><div class="step-dot">1</div><div class="step-lbl">BUSCAR</div></div>
+      <div class="step-sep"></div>
+      <div class="step" id="st2"><div class="step-dot">2</div><div class="step-lbl">REGISTRAR</div></div>
+      <div class="step-sep"></div>
+      <div class="step" id="st3"><div class="step-dot">3</div><div class="step-lbl">DIAGNÓSTICO</div></div>
+    </div>
+  </div>
+</header>
+<div class="wrap">
+<!-- PANTALLA 1 -->
+<div class="screen active" id="sc-search">
+  <div class="welcome">
+    <div class="wg">Bienvenida 👋</div>
+    <div class="wt">Control de IMC</div>
+    <div class="wd">Escribe el DNI o nombre del colaborador para comenzar el registro.</div>
+  </div>
+  <div class="card">
+    <div class="ct">🔍 Buscar colaborador</div>
+    <div class="tabs">
+      <button class="tab on" id="tab-dni" onclick="setTab('dni')">🪪 Por DNI</button>
+      <button class="tab" id="tab-nom" onclick="setTab('nombre')">👤 Por Nombre</button>
+    </div>
+    <div class="s-wrap">
+      <svg class="s-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="s-input" id="sInput" type="text" placeholder="Escribe DNI para buscar..." inputmode="numeric" autocomplete="off" oninput="onType()" onkeydown="if(event.key==='Escape')clearSearch()"/>
+      <button class="s-clear" id="sClear" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="s-hint" id="sHint">Escribe al menos 2 caracteres para buscar</div>
+  </div>
+  <div id="searchBox"></div>
+</div>
+<!-- PANTALLA 2 -->
+<div class="screen" id="sc-form">
+  <button class="back" onclick="goTo('search')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Volver a búsqueda
+  </button>
+  <div class="sel-hero" id="selHero"></div>
+  <div class="hist-sec" id="histSec">
+    <div class="ct">📈 Historial de medidas</div>
+    <div class="hist-ld" id="histLd"><div class="hist-sp"></div><span>Cargando historial...</span></div>
+    <div id="histCt" style="display:none"></div>
+  </div>
+  <div class="card">
+    <div class="ct">📅 Fecha del registro</div>
+    <div class="fecha-row">
+      <div class="fecha-lbl">📅 Fecha de medición</div>
+      <div class="fecha-input" style="display:flex;align-items:center;gap:0">
+        <input type="date" class="fecha-input" id="fechaInput" />
+      </div>
+    </div>
+    <div class="ct">📏 Medidas antropométricas</div>
+    <div class="m-grid">
+      <div class="m-box">
+        <div class="m-lbl">⚖️ Peso</div>
+        <input class="m-inp" id="pesoInput" type="number" placeholder="0.0" step="0.1" min="20" max="250" oninput="liveIMC()"/>
+        <div class="m-unit">kilogramos (kg)</div>
+      </div>
+      <div class="m-box">
+        <div class="m-lbl">📐 Talla</div>
+        <input class="m-inp" id="tallaInput" type="number" placeholder="0.00" step="0.01" min="1.0" max="2.5" oninput="liveIMC()"/>
+        <div class="m-unit">metros (m)</div>
+      </div>
+    </div>
+    <div class="imc-prev" id="imcPrev">
+      <div class="ct">📊 Vista previa IMC</div>
+      <div class="prev-row">
+        <div><div class="prev-num" id="prevNum">—</div><div class="prev-unit">kg/m²</div></div>
+        <div class="d-pill" id="prevPill">—</div>
+      </div>
+      <div class="prev-delta" id="prevDelta" style="display:none">
+        <span class="di" id="dIco">📊</span><span class="dt" id="dTxt">—</span>
+      </div>
+      <div class="scale-w">
+        <div class="scale-b"><div class="scale-n" id="sN" style="left:0%"></div></div>
+        <div class="scale-ls"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>35</span><span>40+</span></div>
+      </div>
+      <div class="legend">
+        <div class="leg-i"><div class="leg-d" style="background:#5AB4D4"></div>Delgadez</div>
+        <div class="leg-i"><div class="leg-d" style="background:#4CAF50"></div>Normal</div>
+        <div class="leg-i"><div class="leg-d" style="background:#F5A623"></div>Sobrepeso</div>
+        <div class="leg-i"><div class="leg-d" style="background:#EF5350"></div>Ob. I</div>
+        <div class="leg-i"><div class="leg-d" style="background:#B71C1C"></div>Ob. II</div>
+        <div class="leg-i"><div class="leg-d" style="background:#7B1FA2"></div>Ob. Mórbida</div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-save" id="btnSave" onclick="saveRecord()" disabled>
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Guardar Registro IMC
+  </button>
+</div>
+<!-- PANTALLA 3 -->
+<div class="screen" id="sc-result">
+  <div class="r-hero" id="rHero"></div>
+  <div class="mx-row">
+    <div class="mx-b"><div class="mx-v" id="mPeso">—</div><div class="mx-l">Peso (kg)</div></div>
+    <div class="mx-b"><div class="mx-v" id="mTalla">—</div><div class="mx-l">Talla (m)</div></div>
+    <div class="mx-b"><div class="mx-v" id="mIMC">—</div><div class="mx-l">IMC</div></div>
+  </div>
+  <div class="d-card">
+    <div class="ct">🩺 Diagnóstico nutricional</div>
+    <div class="d-hdr">
+      <div class="d-circ" id="dCircle"><div class="d-cn" id="dNum">—</div><div class="d-cu">IMC</div></div>
+      <div><div class="d-lbl" id="dLbl">—</div><div class="d-desc" id="dDesc">—</div></div>
+    </div>
+    <div class="scale-w">
+      <div class="scale-b"><div class="scale-n" id="sNR" style="left:0%"></div></div>
+      <div class="scale-ls"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>35</span><span>40+</span></div>
+    </div>
+  </div>
+  <div class="evo-card" id="evoCard" style="display:none">
+    <div class="ct">📈 Evolución histórica</div>
+    <div class="evo-row" id="evoRow"></div>
+  </div>
+  <div class="obs-card" id="obsCard">
+    <div class="obs-hdr">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Recomendaciones
+    </div>
+    <ul class="obs-l" id="obsList"></ul>
+  </div>
+  <div class="pdf-st" id="pdfSt" style="display:none">
+    <span class="psi" id="psi">📤</span><span id="psTxt">Subiendo reporte a SharePoint...</span>
+  </div>
+  <div class="act-grid">
+    <button class="btn-act btn-pdf" onclick="downloadPDF()">📄 Descargar PDF</button>
+    <button class="btn-act btn-wsp" onclick="shareWsp()">📱 Enviar WhatsApp</button>
+  </div>
+  <button class="btn-new" onclick="goTo('search')">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Nuevo Registro
+  </button>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const CFG={
+  FLOW_BUSCAR:   'https://default28c94e5638e44194a9c7e3fd46d7b8.e5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cb79d5dda0244598bd8cfcb75a65eb71/triggers/manual/paths/invoke?api-version=1',
+  FLOW_HISTORIAL:'https://default28c94e5638e44194a9c7e3fd46d7b8.e5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/bae884887adf403680541662a027d0fb/triggers/manual/paths/invoke?api-version=1',
+  FLOW_GUARDAR:  'https://default28c94e5638e44194a9c7e3fd46d7b8.e5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1cace5b3dbed4ef0a5218adc0be11e53/triggers/manual/paths/invoke?api-version=1',
+  FLOW_PDF:      'https://default28c94e5638e44194a9c7e3fd46d7b8.e5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b35c4456be3d4a8685a2c3219a7cac3a/triggers/manual/paths/invoke?api-version=1',
+  CREADO_POR:    'SOOMA Sagitario',
+  DEMO_MODE:     false
+};
+let S={tab:'dni',empList:[],selEmp:null,historial:[],result:null,savedId:null};
+let _db;
+(function(){
+  const now=new Date();
+  document.getElementById('hChip').textContent=now.toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('fechaInput').value=now.toISOString().slice(0,10);
+  document.getElementById('fechaInput').max=now.toISOString().slice(0,10);
+})();
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sc-'+id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  updSteps(id);
+  if(id==='search'){
+    document.getElementById('pesoInput').value='';
+    document.getElementById('tallaInput').value='';
+    document.getElementById('imcPrev').classList.remove('show');
+    document.getElementById('btnSave').disabled=true;
+    document.getElementById('prevDelta').style.display='none';
+    S.selEmp=null;S.historial=[];
+  }
+}
+function updSteps(s){
+  const m={search:0,form:1,result:2};
+  const i=m[s]??0;
+  ['st1','st2','st3'].forEach((id,j)=>{
+    const el=document.getElementById(id);
+    el.classList.remove('active','done');
+    if(j===i)el.classList.add('active');
+    else if(j<i)el.classList.add('done');
+  });
+}
+function setTab(t){
+  S.tab=t;
+  document.getElementById('tab-dni').classList.toggle('on',t==='dni');
+  document.getElementById('tab-nom').classList.toggle('on',t==='nombre');
+  const inp=document.getElementById('sInput');
+  inp.placeholder=t==='dni'?'Escribe DNI para buscar...':'Escribe apellidos o nombre...';
+  inp.inputMode=t==='dni'?'numeric':'text';
+  clearSearch();
+}
+function onType(){
+  const q=document.getElementById('sInput').value.trim();
+  document.getElementById('sClear').classList.toggle('show',q.length>0);
+  clearTimeout(_db);
+  if(q.length<2){
+    document.getElementById('searchBox').innerHTML='';
+    document.getElementById('sHint').textContent=q.length===0?'Escribe al menos 2 caracteres para buscar':'Un carácter más...';
+    return;
+  }
+  document.getElementById('sHint').textContent='Buscando...';
+  document.getElementById('searchBox').innerHTML='<div class="st-blk"><div class="spin-r"></div><p class="st-d">Buscando...</p></div>';
+  _db=setTimeout(()=>doSearch(q),300);
+}
+function clearSearch(){
+  document.getElementById('sInput').value='';
+  document.getElementById('sClear').classList.remove('show');
+  document.getElementById('searchBox').innerHTML='';
+  document.getElementById('sHint').textContent='Escribe al menos 2 caracteres para buscar';
+}
+async function doSearch(q){
+  if(!q)q=document.getElementById('sInput').value.trim();
+  if(q.length<2)return;
+  let emps=[];
+  if(!CFG.DEMO_MODE){
+    try{
+      const r=await fetch(CFG.FLOW_BUSCAR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({searchType:S.tab,query:q})});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();emps=Array.isArray(d)?d:(d.value||[]);
+    }catch(e){
+      console.error(e);
+      document.getElementById('searchBox').innerHTML='<div class="st-blk"><div class="st-ico">⚠️</div><div class="st-t">Sin conexión</div><div class="st-d">Verifica el flujo de Power Automate.</div></div>';
+      document.getElementById('sHint').textContent='Error de conexión';return;
+    }
+  }else{
+    emps=MEMP.filter(e=>S.tab==='dni'?e.DNI.includes(q):e.Titulo.toLowerCase().includes(q.toLowerCase()));
+    await dly(200);
+  }
+  document.getElementById('sHint').textContent=emps.length?emps.length+' resultado'+(emps.length>1?'s':''):'Sin resultados para "'+q+'"';
+  renderEmps(emps);
+}
+function renderEmps(list){
+  S.empList=list;
+  const box=document.getElementById('searchBox');
+  if(!list.length){box.innerHTML='<div class="st-blk"><div class="st-ico">🔍</div><div class="st-t">Sin resultados</div><div class="st-d">No se encontró ningún colaborador. Intenta con otro término.</div></div>';return;}
+  box.innerHTML=list.map((e,i)=>{
+    const nom=e.Titulo||e.Title||'';const dni=e.DNI||'—';const car=e.Cargo||'—';const are=e.Area||'—';const est=e.Estado||'Activo';
+    return`<div class="ec" onclick="selEmp(${i})"><div class="eav">${ini(nom)}</div><div style="flex:1;min-width:0"><div class="en">${nom}</div><div class="em">DNI: ${dni}</div><div class="etags"><span class="tag tc">${are}</span><span class="tag tg">${car}</span><span class="tag ta">${est}</span></div></div><svg class="earr" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+  }).join('');
+}
+async function selEmp(idx){
+  S.selEmp=S.empList[idx];
+  const e=S.selEmp;
+  const nom=e.Titulo||e.Title||'';const dni=e.DNI||'—';const car=e.Cargo||'—';const are=e.Area||'—';const emp=e.Empresa||'Transportes Sagitario';
+  document.getElementById('selHero').innerHTML=`<div class="sel-av">${ini(nom)}</div><div style="flex:1;min-width:0"><div class="sel-n">${nom}</div><div class="sel-s">DNI: ${dni}</div><div class="sel-tags"><span class="sel-tag">📍 ${are}</span><span class="sel-tag">💼 ${car}</span><span class="sel-tag">🏢 ${emp}</span></div></div>`;
+  document.getElementById('fechaInput').value=new Date().toISOString().slice(0,10);
+  goTo('form');loadHist(dni);
+}
+async function loadHist(dni){
+  document.getElementById('histLd').style.display='flex';document.getElementById('histCt').style.display='none';S.historial=[];
+  let hist=[];
+  if(!CFG.DEMO_MODE){
+    try{
+      const r=await fetch(CFG.FLOW_HISTORIAL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DNI:dni})});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();hist=Array.isArray(d)?d:(d.value||[]);
+    }catch(e){console.error(e);hist=[];}
+  }else{await dly(400);hist=MHIST[dni]||[];}
+  S.historial=hist;
+  document.getElementById('histLd').style.display='none';document.getElementById('histCt').style.display='block';
+  const div=document.getElementById('histCt');
+  if(!hist.length){div.innerHTML='<div class="hist-none">📋 No hay registros previos para este colaborador. Este será el primero.</div>';return;}
+  div.innerHTML=`<table class="hist-t"><thead><tr><th>Fecha</th><th>Peso</th><th>Talla</th><th>IMC</th><th>Tendencia</th></tr></thead><tbody>${hist.map((r,i)=>{
+    const imc=parseFloat(r.IMC2||r.imc||0);const info=dInfo(imc);
+    let trend='';
+    if(i<hist.length-1){const prev=parseFloat(hist[i+1].IMC2||hist[i+1].imc||0);const diff=imc-prev;
+      if(diff<-0.1)trend=`<span class="ht" style="color:#2E7D32">▼ ${Math.abs(diff).toFixed(2)}</span>`;
+      else if(diff>0.1)trend=`<span class="ht" style="color:#C62828">▲ ${diff.toFixed(2)}</span>`;
+      else trend=`<span class="ht" style="color:#777">═</span>`;}
+    return`<tr><td>${fmtD(r.Fecha||r.fecha||r.Created)}</td><td>${r.PESO||r.peso||'—'}</td><td>${r.TALLA||r.talla||'—'}</td><td><span class="hp" style="background:${info.color}">${imc.toFixed(2)}</span></td><td>${trend}</td></tr>`;
+  }).join('')}</tbody></table>`;
+  liveIMC();
+}
+function liveIMC(){
+  const peso=parseFloat(document.getElementById('pesoInput').value);
+  const talla=parseFloat(document.getElementById('tallaInput').value);
+  const btn=document.getElementById('btnSave');const prev=document.getElementById('imcPrev');
+  if(peso>0&&talla>0&&talla<3){
+    const imc=cIMC(peso,talla);const info=dInfo(imc);
+    prev.classList.add('show');
+    document.getElementById('prevNum').textContent=f2(imc);document.getElementById('prevNum').style.color=info.color;
+    document.getElementById('prevPill').textContent=info.label;document.getElementById('prevPill').style.background=info.color;
+    document.getElementById('sN').style.left=iPos(imc)+'%';
+    const dEl=document.getElementById('prevDelta');
+    if(S.historial.length>0){
+      const lastIMC=parseFloat(S.historial[0].IMC2||S.historial[0].imc||0);
+      const diff=imc-lastIMC;const ad=Math.abs(diff).toFixed(2);
+      const ld=fmtD(S.historial[0].Fecha||S.historial[0].fecha||S.historial[0].Created);
+      let ico,txt,col;
+      if(diff<-0.1){ico='📉';col='#2E7D32';txt=`Bajó <span class="dn" style="color:${col}">▼ ${ad}</span> desde ${ld}`;}
+      else if(diff>0.1){ico='📈';col='#C62828';txt=`Subió <span class="dn" style="color:${col}">▲ ${ad}</span> desde ${ld}`;}
+      else{ico='📊';col='#777';txt=`<span class="dn" style="color:${col}">Sin cambio</span> desde ${ld}`;}
+      document.getElementById('dIco').textContent=ico;document.getElementById('dTxt').innerHTML=txt;dEl.style.display='flex';
+    }else{dEl.style.display='none';}
+    btn.disabled=false;
+  }else{prev.classList.remove('show');btn.disabled=true;}
+}
+async function saveRecord(){
+  const peso=parseFloat(document.getElementById('pesoInput').value);
+  const talla=parseFloat(document.getElementById('tallaInput').value);
+  const fecha=document.getElementById('fechaInput').value;
+  const e=S.selEmp;
+  if(!e||!peso||!talla){toast('⚠️ Completa todos los campos','warn');return;}
+  const imc=cIMC(peso,talla);const info=dInfo(imc);const obs=obsFor(info.label);
+  const now=new Date(fecha+'T12:00:00');
+  const btn=document.getElementById('btnSave');
+  btn.disabled=true;btn.innerHTML='<div class="btn-sp"></div> Guardando en SharePoint...';
+  const nom=e.Titulo||e.Title||'';const dni=e.DNI||'';
+  let savedId=null;
+  if(!CFG.DEMO_MODE){
+    try{
+      const r=await fetch(CFG.FLOW_GUARDAR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Titulo:nom,DNI:dni,PESO:peso,TALLA:talla,Fecha:fecha,CreadoPor:CFG.CREADO_POR})});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();savedId=d.id||d.Id||d.ID||null;toast('✅ Registro guardado correctamente','ok');
+    }catch(err){console.error(err);toast('⚠️ Error al guardar — verifica el flujo','warn');}
+  }else{await dly(700);savedId='DEMO-'+Date.now();toast('✅ [DEMO] Registro guardado','ok');}
+  S.savedId=savedId;S.result={emp:e,peso,talla,imc:f2(imc),info,obs,fecha:now,historial:[...S.historial]};
+  renderResult(S.result);goTo('result');
+  setTimeout(()=>autoUploadPDF(savedId),900);
+  btn.disabled=false;btn.innerHTML=`<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar Registro IMC`;
+}
+function renderResult(r){
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';const car=r.emp.Cargo||'—';
+  const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
+  const ft=r.fecha.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('rHero').innerHTML=`<div class="r-ok">✅ REGISTRO GUARDADO</div><div class="r-nm">${nom}</div><div class="r-sb">DNI: ${dni} · ${car}</div><div class="r-dt">📅 ${fd} &nbsp;·&nbsp; ⏰ ${ft}</div>`;
+  document.getElementById('mPeso').textContent=r.peso+' kg';
+  document.getElementById('mTalla').textContent=r.talla+' m';
+  document.getElementById('mIMC').textContent=r.imc;
+  document.getElementById('dCircle').style.background=r.info.color;
+  document.getElementById('dNum').textContent=r.imc;
+  document.getElementById('dLbl').textContent=r.info.label;document.getElementById('dLbl').style.color=r.info.color;
+  const subtexts={'NORMAL':'✅ Estado nutricional adecuado','DELGADEZ':'💙 Bajo peso — se recomienda atención','SOBREPESO':'⚠️ Por encima del peso ideal','OBESIDAD TIPO 01':'🔴 Obesidad grado I — atención médica','OBESIDAD TIPO 02':'🔴 Obesidad grado II — supervisión médica','OBESIDAD MÓRBIDA':'🚨 Obesidad grado III — atención urgente'};
+  document.getElementById('dDesc').textContent=subtexts[r.info.label]||'';
+  document.getElementById('sNR').style.left=iPos(parseFloat(r.imc))+'%';
+  document.getElementById('obsCard').style.borderLeftColor=r.info.color;
+  document.getElementById('obsList').innerHTML=r.obs.map(o=>`<li class="obs-i"><div class="obs-ck">✓</div><span>${o}</span></li>`).join('');
+  const hist=r.historial;
+  if(hist.length>0){
+    document.getElementById('evoCard').style.display='block';
+    const all=[...hist].reverse();
+    all.push({Fecha:r.fecha.toISOString().slice(0,10),IMC2:r.imc,DIAGNOSTICO2:r.info.label,_now:true});
+    document.getElementById('evoRow').innerHTML=all.map(rec=>{
+      const imcV=parseFloat(rec.IMC2||rec.imc||0);const ri=dInfo(imcV);const isN=rec._now;
+      return`<div class="evo-item${isN?' evo-now':''}"><div class="evo-date">${isN?'🔵 HOY':fmtD(rec.Fecha||rec.fecha||rec.Created)}</div><div class="evo-imc" style="color:${ri.color}">${imcV.toFixed(2)}</div><div class="evo-diag" style="color:${ri.color}">${ri.label.split(' ')[0]}</div></div>`;
+    }).join('');
+  }else{document.getElementById('evoCard').style.display='none';}
+}
+async function autoUploadPDF(savedId){
+  if(!savedId)return;
+  const b64=buildB64();if(!b64)return;
+  const r=S.result;
+  const nom=(r.emp.Titulo||r.emp.Title||'').replace(/\s+/g,'_').substring(0,25);
+  const fecha=r.fecha.toISOString().slice(0,10);
+  const fn=`IMC_${nom}_${fecha}.pdf`;
+  const st=document.getElementById('pdfSt');st.style.display='flex';st.classList.add('uploading');
+  document.getElementById('psi').textContent='📤';document.getElementById('psTxt').textContent='Subiendo reporte PDF a SharePoint...';
+  if(!CFG.DEMO_MODE){
+    try{
+      const resp=await fetch(CFG.FLOW_PDF,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemId:savedId,fileName:fn,pdfBase64:b64})});
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      st.classList.remove('uploading');document.getElementById('psi').textContent='✅';document.getElementById('psTxt').textContent='Reporte PDF guardado en SharePoint';
+    }catch(e){console.error(e);st.classList.remove('uploading');document.getElementById('psi').textContent='⚠️';document.getElementById('psTxt').textContent='No se pudo subir el PDF automáticamente';}
+  }else{await dly(900);st.classList.remove('uploading');document.getElementById('psi').textContent='✅';document.getElementById('psTxt').textContent='[DEMO] Reporte PDF guardado en SharePoint';}
+}
+function buildB64(){
+  const r=S.result;if(!r)return null;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  genPDF(doc,r);return doc.output('datauristring').split(',')[1];
+}
+function downloadPDF(){
+  const r=S.result;if(!r){toast('⚠️ Sin datos para generar PDF','warn');return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  genPDF(doc,r);
+  const nom=(r.emp.Titulo||r.emp.Title||'').replace(/\s+/g,'_').substring(0,25);
+  doc.save(`IMC_${nom}_${r.fecha.toISOString().slice(0,10)}.pdf`);
+  toast('📄 PDF descargado','ok');
+}
+function genPDF(doc,r){
+  const W=210,M=18;let y=0;
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';const car=r.emp.Cargo||'—';const are=r.emp.Area||'—';const emp=r.emp.Empresa||'Transportes Sagitario S.R.L.';
+  const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
+  const ft=r.fecha.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+  doc.setFillColor(38,66,51);doc.rect(0,0,W,44,'F');doc.setFillColor(61,107,82);doc.rect(0,38,W,6,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text('REPORTE IMC',M,16);
+  doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.text('Control de Índice de Masa Corporal  ·  Transportes Sagitario S.R.L.',M,24);
+  doc.setFontSize(9);doc.text(fd+'  ·  '+ft,W-M,24,{align:'right'});
+  y=57;
+  const band=(t)=>{doc.setFillColor(238,245,241);doc.setDrawColor(209,230,218);doc.roundedRect(M,y-1,W-2*M,8,1,1,'FD');doc.setTextColor(38,66,51);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(t,M+3,y+5);y+=13;};
+  band('DATOS DEL COLABORADOR');
+  [['Nombre',nom],['DNI',dni],['Cargo',car],['Área',are],['Empresa',emp]].forEach(([l,v])=>{
+    doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(90,90,90);doc.text(l+':',M,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(20,20,20);doc.text(v,M+38,y);y+=7;});
+  y+=6;band('MEDIDAS ANTROPOMÉTRICAS');
+  doc.setFillColor(235,248,240);doc.setDrawColor(180,215,194);doc.roundedRect(M,y,W-2*M,10,1.5,1.5,'FD');
+  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(61,107,82);doc.text('FECHA DEL REGISTRO: '+fd,M+4,y+7);y+=16;
+  const bW=(W-2*M-16)/3;
+  [['PESO',r.peso+' kg'],['TALLA',r.talla+' m'],['IMC',r.imc+' kg/m²']].forEach((mx,i)=>{
+    const bx=M+i*(bW+8);doc.setFillColor(238,245,241);doc.setDrawColor(180,215,194);doc.roundedRect(bx,y,bW,22,2,2,'FD');
+    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(61,107,82);doc.text(mx[0],bx+bW/2,y+8,{align:'center'});
+    doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(38,66,51);doc.text(mx[1],bx+bW/2,y+18,{align:'center'});});
+  y+=32;band('DIAGNÓSTICO NUTRICIONAL');
+  const dc=hRGB(r.info.color);doc.setFillColor(dc.r,dc.g,dc.b);doc.roundedRect(M,y,W-2*M,16,3,3,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text(r.info.label,W/2,y+11,{align:'center'});y+=24;
+  const hist=r.historial;
+  if(hist.length>0){
+    band('EVOLUCIÓN HISTÓRICA DEL IMC');
+    const cols=[['Fecha',40],['Peso (kg)',25],['Talla (m)',25],['IMC',22],['Diagnóstico',57]];
+    let cx=M;doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(61,107,82);
+    cols.forEach(([h,w])=>{doc.text(h,cx,y);cx+=w;});y+=1;
+    doc.setDrawColor(180,215,194);doc.line(M,y,W-M,y);y+=5;
+    const rows=[...hist].reverse();
+    rows.push({Fecha:r.fecha.toISOString().slice(0,10),IMC2:r.imc,DIAGNOSTICO2:r.info.label,PESO:r.peso,TALLA:r.talla,_now:true});
+    rows.forEach(rec=>{
+      if(y>265){doc.addPage();y=20;}
+      const isN=rec._now;
+      if(isN){doc.setFillColor(238,245,241);doc.rect(M,y-3.5,W-2*M,7,'F');}
+      doc.setFont('helvetica',isN?'bold':'normal');doc.setTextColor(isN?38:50,isN?66:50,isN?51:50);
+      const rIMC=parseFloat(rec.IMC2||rec.imc||0);
+      const vals=[isN?'HOY ('+fd.substring(0,6)+fd.substring(fd.indexOf(' de ')+4).trim()+')':fmtD(rec.Fecha||rec.fecha||rec.Created),String(rec.PESO||rec.peso||'—'),String(rec.TALLA||rec.talla||'—'),rIMC.toFixed(2),rec.DIAGNOSTICO2||rec.diagnostico||dInfo(rIMC).label];
+      const ws=[40,25,25,22,57];let cx2=M;vals.forEach((v,vi)=>{doc.text(v,cx2,y);cx2+=ws[vi];});y+=6;
+      doc.setDrawColor(220,235,225);doc.line(M,y-2,W-M,y-2);});
+    y+=6;
+  }
+  if(y>230){doc.addPage();y=20;}
+  band('RECOMENDACIONES');
+  doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  r.obs.forEach(obs=>{
+    if(y>262){doc.addPage();y=20;}
+    const lines=doc.splitTextToSize('•  '+obs,W-2*M-10);const bh=lines.length*5.5+7;
+    doc.setFillColor(238,245,241);doc.roundedRect(M,y-3.5,W-2*M,bh,1.5,1.5,'F');
+    doc.text(lines,M+4,y+1.5);y+=bh+3;});
+  doc.setFillColor(238,245,241);doc.rect(0,276,W,21,'F');
+  doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(100,100,100);
+  doc.text('Generado por SaludTS · SOOMA Sagitario · Transportes Sagitario S.R.L.',W/2,284,{align:'center'});
+  doc.text('Documento de carácter confidencial y de uso interno exclusivo.',W/2,291,{align:'center'});
+}
+function shareWsp(){
+  const r=S.result;if(!r)return;
+  const nom=r.emp.Titulo||r.emp.Title||'';const dni=r.emp.DNI||'—';
+  const fd=r.fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
+  const emos={'NORMAL':'✅','DELGADEZ':'💙','SOBREPESO':'⚠️','OBESIDAD TIPO 01':'🔴','OBESIDAD TIPO 02':'🔴','OBESIDAD MÓRBIDA':'🚨'};
+  let msg='🏥 *REPORTE IMC — TRANSPORTES SAGITARIO*\n━━━━━━━━━━━━━━━━━━━━━━\n\n';
+  msg+=`👤 *Colaborador:* ${nom}\n🪪 *DNI:* ${dni}\n📅 *Fecha:* ${fd}\n\n`;
+  msg+=`📊 *MEDIDAS*\n• Peso: ${r.peso} kg\n• Talla: ${r.talla} m\n• IMC: ${r.imc} kg/m²\n\n`;
+  msg+=`${emos[r.info.label]||'📋'} *DIAGNÓSTICO: ${r.info.label}*\n\n`;
+  if(r.historial.length>0){
+    msg+='📈 *EVOLUCIÓN*\n';
+    [...r.historial].reverse().slice(-3).forEach(h=>{const hi=parseFloat(h.IMC2||h.imc||0);msg+=`• ${fmtD(h.Fecha||h.fecha||h.Created)}: IMC ${hi.toFixed(2)} (${h.DIAGNOSTICO2||dInfo(hi).label})\n`;});
+    msg+=`• HOY: IMC ${r.imc} (${r.info.label})\n\n`;
+  }
+  msg+='💡 *RECOMENDACIONES*\n';r.obs.forEach(o=>{msg+=`✓ ${o}\n`;});
+  msg+='\n━━━━━━━━━━━━━━━━━━━━━━\n_Generado por SaludTS · SOOMA Sagitario_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+const cIMC=(p,t)=>p/(t*t);
+const f2=v=>(Math.round(v*100)/100).toFixed(2);
+const iPos=imc=>((Math.max(15,Math.min(40,imc))-15)/25)*100;
+function dInfo(imc){
+  if(imc<18.5)return{label:'DELGADEZ',color:'#5AB4D4'};
+  if(imc<25)return{label:'NORMAL',color:'#4CAF50'};
+  if(imc<30)return{label:'SOBREPESO',color:'#F5A623'};
+  if(imc<35)return{label:'OBESIDAD TIPO 01',color:'#EF5350'};
+  if(imc<40)return{label:'OBESIDAD TIPO 02',color:'#B71C1C'};
+  return{label:'OBESIDAD MÓRBIDA',color:'#7B1FA2'};
+}
+function obsFor(d){
+  const M={'NORMAL':['¡Felicidades, sigue así! Tu estado nutricional es adecuado.','Mantén una alimentación variada y equilibrada.','Continúa con tus hábitos saludables de ejercicio y descanso.'],'DELGADEZ':['Aumenta alimentos nutritivos y calóricos saludables (frutos secos, palta, lácteos, huevos).','Come 5-6 veces al día en porciones pequeñas pero frecuentes.','Incluye proteínas en cada comida (pollo, pescado, legumbres).','Evita saltarte comidas.','Realiza ejercicios de fuerza para ganar masa muscular.','Duerme 7 horas aproximadamente cada noche.','Consulta con nutricionista para un plan personalizado.'],'SOBREPESO':['Come más frutas, verduras y fibra.','Reduce azúcar y ultraprocesados.','Bebe agua, evita bebidas azucaradas.','Haz 30 minutos de ejercicio diario.','Duerme 7 horas aproximadamente cada noche.','Evita comer por estrés o emociones.','Controla las porciones de tus comidas.'],'OBESIDAD TIPO 01':['Come más frutas, verduras y proteínas magras.','Reduce azúcares, frituras y ultraprocesados.','Camina 30-45 minutos diarios o realiza actividad física moderada.','Duerme aproximadamente 7 horas y controla el estrés.','Revisa tu peso y salud con médico o nutricionista periódicamente.'],'OBESIDAD TIPO 02':['Sigue un plan alimentario estructurado con nutricionista.','Evita ultraprocesados, bebidas azucaradas y alcohol.','Realiza ejercicio supervisado: caminata, bicicleta o natación (30-60 min diarios).','Evalúa factores médicos: metabolismo, tiroides u otras enfermedades.','Busca apoyo psicológico para mejorar hábitos y motivación.'],'OBESIDAD MÓRBIDA':['Sigue un plan alimentario estricto supervisado por nutricionista.','Evita completamente ultraprocesados, azúcares, bebidas azucaradas y alcohol.','Realiza actividad física progresiva y supervisada según tu condición.','Solicita evaluación médica integral (cardiovascular, endocrina y metabólica).','Consulta sobre tratamiento farmacológico o cirugía bariátrica según indicación médica.','Mantén apoyo psicológico continuo.','Realiza control periódico de comorbilidades (diabetes, hipertensión, etc.).']};
+  return M[d]||[];
+}
+function ini(n){const w=(n||'').trim().split(/\s+/).filter(Boolean);return w.length>=2?(w[0][0]+w[1][0]).toUpperCase():(w[0]||'?').substring(0,2).toUpperCase();}
+function hRGB(hex){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:0,g:0,b:0};}
+function fmtD(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return String(d).slice(0,10);}}
+function dly(ms){return new Promise(r=>setTimeout(r,ms));}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3500);}
+const MEMP=[
+  {Id:1,Titulo:'AGUILAR DIAZ SEGUNDO LEONCIO',DNI:'26704344',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:2,Titulo:'ALTAMIRANO JULCAMORO MIGUEL ANGEL',DNI:'26715682',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:3,Titulo:'ALVAREZ OCAS SEGUNDO VICTOR',DNI:'41997062',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:4,Titulo:'APAZA UTURUNCO CARLOS PRIMITIVO',DNI:'40016884',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:5,Titulo:'AQUINO CRISOLOGO JASLY MANUEL',DNI:'76849530',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:6,Titulo:'AYAY POMPA JUAN',DNI:'41631676',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:7,Titulo:'BARRANTES CACERES RICHARD WALDIR',DNI:'72438986',Area:'OPERACIONES',Cargo:'AGENTE DE SEGURIDAD',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:8,Titulo:'PLASENCIA MARTOS JOSE DELFIN',DNI:'26724197',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:9,Titulo:'RAMIREZ DELGADO ALITHU ISABEL',DNI:'46834797',Area:'ADMINISTRACION',Cargo:'ASISTENTE',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:10,Titulo:'COTRINA VASQUEZ MARCO ANTONIO',DNI:'18193827',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:11,Titulo:'VASQUEZ QUISPE CARLOS ALBERTO',DNI:'19823410',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+  {Id:12,Titulo:'MENDOZA FLORES JORGE LUIS',DNI:'27834521',Area:'OPERACIONES',Cargo:'CONDUCTOR',Empresa:'Transportes Sagitario',Estado:'Activo'},
+];
+const MHIST={
+  '26724197':[{Id:305,Fecha:'2025-12-10',PESO:81.2,TALLA:1.68,IMC2:'28.77',DIAGNOSTICO2:'SOBREPESO'},{Id:248,Fecha:'2025-09-15',PESO:83.0,TALLA:1.68,IMC2:'29.41',DIAGNOSTICO2:'SOBREPESO'},{Id:190,Fecha:'2025-06-20',PESO:85.5,TALLA:1.68,IMC2:'30.30',DIAGNOSTICO2:'OBESIDAD TIPO 01'},{Id:131,Fecha:'2025-03-08',PESO:87.0,TALLA:1.68,IMC2:'30.83',DIAGNOSTICO2:'OBESIDAD TIPO 01'}],
+  '46834797':[{Id:306,Fecha:'2025-12-11',PESO:64.0,TALLA:1.57,IMC2:'25.97',DIAGNOSTICO2:'SOBREPESO'},{Id:249,Fecha:'2025-09-16',PESO:65.5,TALLA:1.57,IMC2:'26.57',DIAGNOSTICO2:'SOBREPESO'}],
+  '26704344':[{Id:300,Fecha:'2025-12-05',PESO:70.0,TALLA:1.72,IMC2:'23.67',DIAGNOSTICO2:'NORMAL'}],
+};
+</script>
+</body>
+</html>
