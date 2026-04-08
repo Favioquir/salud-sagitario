@@ -449,7 +449,7 @@ async function loadHist(dni){
       else trend=`<span class="ht" style="color:#777">═</span>`;}
     const rPeso=r.PESO||r['PESO_x0020_']||r.peso||'—';
     const rTalla=r.TALLA||r['TALLA_x0020_']||r.talla||'—';
-    return`<tr><td>${fmtD(r.Fecha||r.fecha||r['Fecha_x0020_']||r.Created||r.Modified)}</td><td>${rPeso}</td><td>${rTalla}</td><td><span class="hp" style="background:${info.color}">${imc.toFixed(2)}</span></td><td>${trend}</td></tr>`;
+    return`<tr><td>${fmtD(r.Fecha||r.fecha||r.FechaCreado||r['Fecha_x0020_']||r.Created||r.Modified)}</td><td>${rPeso}</td><td>${rTalla}</td><td><span class="hp" style="background:${info.color}">${imc.toFixed(2)}</span></td><td>${trend}</td></tr>`;
   }).join('')}</tbody></table>`;
   liveIMC();
 }
@@ -465,14 +465,22 @@ function liveIMC(){
     document.getElementById('sN').style.left=iPos(imc)+'%';
     const dEl=document.getElementById('prevDelta');
     if(S.historial.length>0){
-      const lastIMC=parseFloat(S.historial[0].IMC2||S.historial[0].imc||0);
+      const lh=S.historial[0];
+      const lhP=parseFloat(lh.PESO||lh['PESO_x0020_']||lh.peso||0);
+      const lhT=parseFloat(lh.TALLA||lh.talla||0);
+      const lhRaw=parseFloat(lh.IMC2||lh['_x0049_MC2']||lh.imc||0);
+      const lastIMC=(lhRaw>0)?lhRaw:((lhP>0&&lhT>0)?cIMC(lhP,lhT):0);
+      if(lastIMC<=0){document.getElementById('prevDelta').style.display='none';}
+      if(lastIMC<=0){document.getElementById('prevDelta').style.display='none';}
+      else{
       const diff=imc-lastIMC;const ad=Math.abs(diff).toFixed(2);
-      const ld=fmtD(S.historial[0].Fecha||S.historial[0].fecha||S.historial[0].Created);
+      const ld=fmtD(lh.Fecha||lh.fecha||lh.FechaCreado||lh.Created);
       let ico,txt,col;
       if(diff<-0.1){ico='📉';col='#2E7D32';txt=`Bajó <span class="dn" style="color:${col}">▼ ${ad}</span> desde ${ld}`;}
       else if(diff>0.1){ico='📈';col='#C62828';txt=`Subió <span class="dn" style="color:${col}">▲ ${ad}</span> desde ${ld}`;}
       else{ico='📊';col='#777';txt=`<span class="dn" style="color:${col}">Sin cambio</span> desde ${ld}`;}
       document.getElementById('dIco').textContent=ico;document.getElementById('dTxt').innerHTML=txt;dEl.style.display='flex';
+      }
     }else{dEl.style.display='none';}
     btn.disabled=false;
   }else{prev.classList.remove('show');btn.disabled=true;}
@@ -527,7 +535,7 @@ function renderResult(r){
       const evT=parseFloat(rec.TALLA||rec.talla||0);
       const evRaw=parseFloat(rec.IMC2||rec['_x0049_MC2']||rec['IMC2_x0020_']||rec.imc||0);
       const imcV=(evRaw>0)?evRaw:((evP>0&&evT>0)?cIMC(evP,evT):0);const ri=dInfo(imcV);const isN=rec._now;
-      return`<div class="evo-item${isN?' evo-now':''}"><div class="evo-date">${isN?'🔵 HOY':fmtD(rec.Fecha||rec.fecha||rec.Created)}</div><div class="evo-imc" style="color:${ri.color}">${imcV.toFixed(2)}</div><div class="evo-diag" style="color:${ri.color}">${ri.label.split(' ')[0]}</div></div>`;
+      return`<div class="evo-item${isN?' evo-now':''}"><div class="evo-date">${isN?'🔵 HOY':fmtD(rec.Fecha||rec.fecha||rec.FechaCreado||rec.Created)}</div><div class="evo-imc" style="color:${ri.color}">${imcV.toFixed(2)}</div><div class="evo-diag" style="color:${ri.color}">${ri.label.split(' ')[0]}</div></div>`;
     }).join('');
   }else{document.getElementById('evoCard').style.display='none';}
 }
@@ -605,7 +613,7 @@ function genPDF(doc,r){
       const pdfT=parseFloat(rec.TALLA||rec.talla||0);
       const pdfRaw=parseFloat(rec.IMC2||rec['_x0049_MC2']||rec.imc||0);
       const rIMC=(pdfRaw>0)?pdfRaw:((pdfP>0&&pdfT>0)?cIMC(pdfP,pdfT):0);
-      const vals=[isN?'HOY ('+fd.substring(0,6)+fd.substring(fd.indexOf(' de ')+4).trim()+')':fmtD(rec.Fecha||rec.fecha||rec.Created),String(rec.PESO||rec['PESO_x0020_']||rec.peso||'—'),String(rec.TALLA||rec.talla||'—'),rIMC.toFixed(2),rec.DIAGNOSTICO2||rec['DIAGN_x00d3_STICO2']||rec.diagnostico||dInfo(rIMC).label];
+      const vals=[isN?'HOY ('+fd.substring(0,6)+fd.substring(fd.indexOf(' de ')+4).trim()+')':fmtD(rec.Fecha||rec.fecha||rec.FechaCreado||rec.Created),String(rec.PESO||rec['PESO_x0020_']||rec.peso||'—'),String(rec.TALLA||rec.talla||'—'),rIMC.toFixed(2),rec.DIAGNOSTICO2||rec['DIAGN_x00d3_STICO2']||rec.diagnostico||dInfo(rIMC).label];
       const ws=[40,25,25,22,57];let cx2=M;vals.forEach((v,vi)=>{doc.text(v,cx2,y);cx2+=ws[vi];});y+=6;
       doc.setDrawColor(220,235,225);doc.line(M,y-2,W-M,y-2);});
     y+=6;
@@ -634,7 +642,7 @@ function shareWsp(){
   msg+=`${emos[r.info.label]||'📋'} *DIAGNÓSTICO: ${r.info.label}*\n\n`;
   if(r.historial.length>0){
     msg+='📈 *EVOLUCIÓN*\n';
-    [...r.historial].reverse().slice(-3).forEach(h=>{const hP=parseFloat(h.PESO||h['PESO_x0020_']||h.peso||0);const hT=parseFloat(h.TALLA||h.talla||0);const hiRaw=parseFloat(h.IMC2||h['_x0049_MC2']||h.imc||0);const hi=(hiRaw>0)?hiRaw:((hP>0&&hT>0)?cIMC(hP,hT):0);msg+=`• ${fmtD(h.Fecha||h.fecha||h.Created)}: IMC ${hi.toFixed(2)} (${h.DIAGNOSTICO2||h['DIAGN_x00d3_STICO2']||dInfo(hi).label})\n`;});
+    [...r.historial].reverse().slice(-3).forEach(h=>{const hP=parseFloat(h.PESO||h['PESO_x0020_']||h.peso||0);const hT=parseFloat(h.TALLA||h.talla||0);const hiRaw=parseFloat(h.IMC2||h['_x0049_MC2']||h.imc||0);const hi=(hiRaw>0)?hiRaw:((hP>0&&hT>0)?cIMC(hP,hT):0);msg+=`• ${fmtD(h.Fecha||h.fecha||h.FechaCreado||h.Created)}: IMC ${hi.toFixed(2)} (${h.DIAGNOSTICO2||h['DIAGN_x00d3_STICO2']||dInfo(hi).label})\n`;});
     msg+=`• HOY: IMC ${r.imc} (${r.info.label})\n\n`;
   }
   msg+='💡 *RECOMENDACIONES*\n';r.obs.forEach(o=>{msg+=`✓ ${o}\n`;});
