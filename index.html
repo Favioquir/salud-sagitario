@@ -438,13 +438,15 @@ async function loadHist(dni){
   const div=document.getElementById('histCt');
   if(!hist.length){div.innerHTML='<div class="hist-none">📋 No hay registros previos para este colaborador. Este será el primero.</div>';return;}
   div.innerHTML=`<table class="hist-t"><thead><tr><th>Fecha</th><th>Peso</th><th>Talla</th><th>IMC</th><th>Tendencia</th></tr></thead><tbody>${hist.map((r,i)=>{
-    const imc=parseFloat(r.IMC2||r.imc||0);const info=dInfo(imc);
+    const imc=parseFloat(r.IMC2||r['IMC2_x0020_']||r.imc||0);const info=dInfo(imc);
     let trend='';
     if(i<hist.length-1){const prev=parseFloat(hist[i+1].IMC2||hist[i+1].imc||0);const diff=imc-prev;
       if(diff<-0.1)trend=`<span class="ht" style="color:#2E7D32">▼ ${Math.abs(diff).toFixed(2)}</span>`;
       else if(diff>0.1)trend=`<span class="ht" style="color:#C62828">▲ ${diff.toFixed(2)}</span>`;
       else trend=`<span class="ht" style="color:#777">═</span>`;}
-    return`<tr><td>${fmtD(r.Fecha||r.fecha||r.Created)}</td><td>${r.PESO||r.peso||'—'}</td><td>${r.TALLA||r.talla||'—'}</td><td><span class="hp" style="background:${info.color}">${imc.toFixed(2)}</span></td><td>${trend}</td></tr>`;
+    const rPeso=r.PESO||r['PESO_x0020_']||r.peso||'—';
+    const rTalla=r.TALLA||r['TALLA_x0020_']||r.talla||'—';
+    return`<tr><td>${fmtD(r.Fecha||r.fecha||r.Created)}</td><td>${rPeso}</td><td>${rTalla}</td><td><span class="hp" style="background:${info.color}">${imc.toFixed(2)}</span></td><td>${trend}</td></tr>`;
   }).join('')}</tbody></table>`;
   liveIMC();
 }
@@ -518,7 +520,7 @@ function renderResult(r){
     const all=[...hist].reverse();
     all.push({Fecha:r.fecha.toISOString().slice(0,10),IMC2:r.imc,DIAGNOSTICO2:r.info.label,_now:true});
     document.getElementById('evoRow').innerHTML=all.map(rec=>{
-      const imcV=parseFloat(rec.IMC2||rec.imc||0);const ri=dInfo(imcV);const isN=rec._now;
+      const imcV=parseFloat(rec.IMC2||rec['IMC2_x0020_']||rec.imc||0);const ri=dInfo(imcV);const isN=rec._now;
       return`<div class="evo-item${isN?' evo-now':''}"><div class="evo-date">${isN?'🔵 HOY':fmtD(rec.Fecha||rec.fecha||rec.Created)}</div><div class="evo-imc" style="color:${ri.color}">${imcV.toFixed(2)}</div><div class="evo-diag" style="color:${ri.color}">${ri.label.split(' ')[0]}</div></div>`;
     }).join('');
   }else{document.getElementById('evoCard').style.display='none';}
@@ -623,7 +625,7 @@ function shareWsp(){
   msg+=`${emos[r.info.label]||'📋'} *DIAGNÓSTICO: ${r.info.label}*\n\n`;
   if(r.historial.length>0){
     msg+='📈 *EVOLUCIÓN*\n';
-    [...r.historial].reverse().slice(-3).forEach(h=>{const hi=parseFloat(h.IMC2||h.imc||0);msg+=`• ${fmtD(h.Fecha||h.fecha||h.Created)}: IMC ${hi.toFixed(2)} (${h.DIAGNOSTICO2||dInfo(hi).label})\n`;});
+    [...r.historial].reverse().slice(-3).forEach(h=>{const hi=parseFloat(h.IMC2||h['IMC2_x0020_']||h.imc||0);msg+=`• ${fmtD(h.Fecha||h.fecha||h.Created)}: IMC ${hi.toFixed(2)} (${h.DIAGNOSTICO2||dInfo(hi).label})\n`;});
     msg+=`• HOY: IMC ${r.imc} (${r.info.label})\n\n`;
   }
   msg+='💡 *RECOMENDACIONES*\n';r.obs.forEach(o=>{msg+=`✓ ${o}\n`;});
